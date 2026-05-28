@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flatnotes
+  labels:
+    app: flatnotes
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flatnotes
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: flatnotes
+    spec:
+      containers:
+        - name: flatnotes
+          image: dullage/flatnotes:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: FLATNOTES_AUTH_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: app-configs
+                  key: FLATNOTES_AUTH_TYPE
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: app-configs
+                  key: TZ
+            - name: FLATNOTES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: flatnotes-credentials
+                  key: FLATNOTES_USERNAME
+            - name: FLATNOTES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: flatnotes-credentials
+                  key: FLATNOTES_PASSWORD
+            - name: FLATNOTES_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: flatnotes-credentials
+                  key: FLATNOTES_SECRET_KEY
+          volumeMounts:
+            - name: flatnotes-data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: flatnotes-data
+          persistentVolumeClaim:
+            claimName: flatnotes-data

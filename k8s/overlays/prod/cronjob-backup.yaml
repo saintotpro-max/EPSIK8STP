@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: flatnotes-backup
+  labels:
+    app: flatnotes
+spec:
+  schedule: "*/10 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: alpine:3.18
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  ARCHIVE="flatnotes_${TIMESTAMP}.tar.gz"
+                  tar -czf "/backup/${ARCHIVE}" -C /data .
+                  echo "Backup created: ${ARCHIVE}"
+                  ls -lh /backup/ | tail -10
+              volumeMounts:
+                - name: flatnotes-data
+                  mountPath: /data
+                  readOnly: true
+                - name: backup-volume
+                  mountPath: /backup
+          volumes:
+            - name: flatnotes-data
+              persistentVolumeClaim:
+                claimName: flatnotes-data
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: flatnotes-backup
