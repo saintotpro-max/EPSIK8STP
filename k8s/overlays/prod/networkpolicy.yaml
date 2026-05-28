@@ -36,6 +36,8 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: ingress-nginx
+        - ipBlock:
+            cidr: 172.23.0.0/16
       ports:
         - protocol: TCP
           port: 8080
